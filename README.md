@@ -19,8 +19,25 @@ If there's **no image on the clipboard**, clicking the icon instead captures a
 full-screen screenshot of the main display and uploads that (named `shot-*.png`
 vs `clip-*.png`). So the icon is always "send what I've got / send what I see".
 
-The icon shows ↑ while uploading, ✓ on success, ⚠️ on failure. Right-click (or
-⌥-click) the icon for a menu with **Quit**.
+The icon shows ↑ while uploading, ✓ on success, ⚠️ on failure.
+
+**Right-click** (or ⌥-click) the icon for a menu that also lets you manage what's
+on the VPS:
+
+- **Uploaded Images (N, size)** — submenu listing every image currently on the
+  host; click one to download and open it in Preview.
+- **Clean All Uploads (N)…** — deletes every uploaded image on the host (with a
+  confirmation).
+- **Quit**.
+
+The same operations are available from the CLI:
+
+```sh
+vps-img-paste            # upload clipboard image / screenshot
+vps-img-paste list       # SIZE<TAB>NAME per uploaded image, newest first
+vps-img-paste fetch NAME # download NAME to a temp file, print its path
+vps-img-paste clean      # delete all uploaded images on the host
+```
 
 > **Screen Recording permission:** the screenshot fallback needs it. The first
 > time it fires, grant it under **System Settings → Privacy & Security → Screen

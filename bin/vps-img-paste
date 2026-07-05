@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-# Send the image on the Mac clipboard to a remote host over SSH.
-#   1. Grab the image currently on the Mac clipboard.
-#   2. Upload it to the host over scp.
-#   3. Put the remote file path back on the Mac clipboard + show a notification.
-# Then paste that path into your remote/SSH app (many tools auto-attach on-disk paths).
+# Send the image on the Mac clipboard (or a full-screen screenshot) to a remote
+# host over SSH, and manage the uploaded images.
+#
+# Subcommands:
+#   (none) | upload   Upload clipboard image, or a screenshot if the clipboard
+#                     has no image. Puts the remote path on the clipboard.
+#   list              Print "SIZE<TAB>NAME" for each uploaded image, newest first.
+#   fetch NAME        Download NAME to a temp dir and print its local path.
+#   clean             Delete all uploaded images on the host; print the count.
 #
 # Configure the host in ~/.config/vps-img-paste.env (see vps-img-paste.env.example),
 # or via VPS_HOST / VPS_REMOTE_HOME env vars.
@@ -18,6 +22,7 @@ VPS="${VPS_HOST:-user@your-vps-host}"
 REMOTE_HOME="${VPS_REMOTE_HOME:-/home/user}"
 REMOTE_DIR="${VPS_REMOTE_DIR:-img-uploads}"
 PNGPASTE="${PNGPASTE:-/opt/homebrew/bin/pngpaste}"
+SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=6)
 
 notify() { osascript -e "display notification \"$2\" with title \"VPS Image Paste\" subtitle \"$1\"" >/dev/null 2>&1; }
 
@@ -27,40 +32,73 @@ if [ "$VPS" = "user@your-vps-host" ]; then
   exit 2
 fi
 
-# --- grab clipboard image ----------------------------------------------------
-tmp="$(mktemp -t vpsimgpaste).png"
-trap 'rm -f "$tmp"' EXIT
+cmd="${1:-upload}"
 
-if [ ! -x "$PNGPASTE" ]; then
-  echo "✗ pngpaste not found at $PNGPASTE (brew install pngpaste)." >&2
-  notify "Missing pngpaste" "Run: brew install pngpaste"
-  exit 3
-fi
+case "$cmd" in
+  upload)
+    # --- grab clipboard image, else screenshot the main display --------------
+    tmp="$(mktemp -t vpsimgpaste).png"
+    trap 'rm -f "$tmp"' EXIT
 
-kind="clip"
-if ! "$PNGPASTE" "$tmp" 2>/dev/null; then
-  # No clipboard image — fall back to a full-screen screenshot of the main display.
-  if screencapture -x -t png "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
-    kind="shot"
-  else
-    echo "✗ No clipboard image, and screen capture failed." >&2
-    echo "  Grant Screen Recording permission to VPS Image Paste, or copy an image first." >&2
-    notify "Capture failed" "Grant Screen Recording permission, or copy an image."
-    exit 1
-  fi
-fi
+    if [ ! -x "$PNGPASTE" ]; then
+      echo "✗ pngpaste not found at $PNGPASTE (brew install pngpaste)." >&2
+      notify "Missing pngpaste" "Run: brew install pngpaste"
+      exit 3
+    fi
 
-# --- upload ------------------------------------------------------------------
-name="$kind-$(date +%Y%m%d-%H%M%S).png"
-if ! scp -q "$tmp" "$VPS:$REMOTE_DIR/$name"; then
-  notify "Upload failed" "Could not reach $VPS."
-  echo "✗ scp to $VPS failed." >&2
-  exit 4
-fi
+    kind="clip"
+    if ! "$PNGPASTE" "$tmp" 2>/dev/null; then
+      # No clipboard image — fall back to a full-screen screenshot of the main display.
+      if screencapture -x -t png "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
+        kind="shot"
+      else
+        echo "✗ No clipboard image, and screen capture failed." >&2
+        echo "  Grant Screen Recording permission to VPS Image Paste, or copy an image first." >&2
+        notify "Capture failed" "Grant Screen Recording permission, or copy an image."
+        exit 1
+      fi
+    fi
 
-remote_path="$REMOTE_HOME/$REMOTE_DIR/$name"
-printf '%s' "$remote_path" | pbcopy
-label=$([ "$kind" = shot ] && echo "Screenshot" || echo "Image")
-echo "✓ Uploaded ($label) → $remote_path"
-echo "  Path is on your clipboard — Cmd+V it into your SSH session and send."
-notify "$label path copied — ⌘V to paste" "$name"
+    name="$kind-$(date +%Y%m%d-%H%M%S).png"
+    if ! scp -q "${SSH_OPTS[@]}" "$tmp" "$VPS:$REMOTE_DIR/$name"; then
+      # Upload dir may not exist yet — create it once and retry.
+      ssh "${SSH_OPTS[@]}" "$VPS" "mkdir -p '$REMOTE_DIR'" 2>/dev/null || true
+      if ! scp -q "${SSH_OPTS[@]}" "$tmp" "$VPS:$REMOTE_DIR/$name"; then
+        notify "Upload failed" "Could not reach $VPS."
+        echo "✗ scp to $VPS failed." >&2
+        exit 4
+      fi
+    fi
+
+    remote_path="$REMOTE_HOME/$REMOTE_DIR/$name"
+    printf '%s' "$remote_path" | pbcopy
+    label=$([ "$kind" = shot ] && echo "Screenshot" || echo "Image")
+    echo "✓ Uploaded ($label) → $remote_path"
+    echo "  Path is on your clipboard — Cmd+V it into your SSH session and send."
+    notify "$label path copied — ⌘V to paste" "$name"
+    ;;
+
+  list)
+    ssh "${SSH_OPTS[@]}" "$VPS" \
+      "mkdir -p '$REMOTE_DIR' && find '$REMOTE_DIR' -maxdepth 1 -type f -name '*.png' -printf '%T@\t%s\t%f\n' | sort -rn | cut -f2-"
+    ;;
+
+  fetch)
+    name="$(basename "${2:?usage: vps-img-paste fetch NAME}")"
+    dest="$(mktemp -d -t vpsimgpaste)/$name"
+    scp -q "${SSH_OPTS[@]}" "$VPS:$REMOTE_DIR/$name" "$dest"
+    echo "$dest"
+    ;;
+
+  clean)
+    n="$(ssh "${SSH_OPTS[@]}" "$VPS" \
+      "find '$REMOTE_DIR' -maxdepth 1 -type f -name '*.png' -printf '.' -delete 2>/dev/null | wc -c" | tr -d ' ')"
+    echo "✓ Deleted ${n:-0} uploaded image(s) on $VPS."
+    notify "Uploads cleaned" "Deleted ${n:-0} image(s) on the VPS."
+    ;;
+
+  *)
+    echo "usage: vps-img-paste [upload|list|fetch NAME|clean]" >&2
+    exit 64
+    ;;
+esac
