@@ -122,7 +122,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Script bridge
 
     private func scriptPath() -> String {
-        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("bin/vps-img-paste").path
+        let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser.path
+        let candidates = [
+            ProcessInfo.processInfo.environment["VPS_IMG_PASTE_BIN"],  // explicit override
+            "/opt/homebrew/bin/vps-img-paste",                          // Homebrew (Apple Silicon)
+            "/usr/local/bin/vps-img-paste",                             // Homebrew (Intel)
+            "\(home)/bin/vps-img-paste",                                // install.sh symlink
+        ].compactMap { $0 }
+        for c in candidates where fm.isExecutableFile(atPath: c) { return c }
+        return candidates.last ?? "\(home)/bin/vps-img-paste"
     }
 
     private func runScriptSync(_ args: [String]) -> (String, Int32) {

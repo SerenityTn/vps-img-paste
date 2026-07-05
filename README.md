@@ -50,29 +50,33 @@ vps-img-paste clean      # delete all uploaded images on the host
 > time it fires, grant it under **System Settings → Privacy & Security → Screen
 > Recording** for *VPS Image Paste*. Until then, a screenshot is blank/windowless.
 
-## Install
+## Install (Homebrew)
 
 ```sh
-git clone <your-repo-url> vps-img-paste
+brew install SerenityTn/tap/vps-img-paste
+```
+
+Then configure your host and start the menu-bar app:
+
+```sh
+mkdir -p ~/.config
+cp "$(brew --prefix)/share/vps-img-paste/vps-img-paste.env.example" ~/.config/vps-img-paste.env
+$EDITOR ~/.config/vps-img-paste.env          # set VPS_HOST / VPS_REMOTE_HOME
+
+ssh user@your-vps-host 'mkdir -p ~/img-uploads'   # create the upload dir
+brew services start vps-img-paste             # run now + at login
+```
+
+Upgrade later with `brew upgrade vps-img-paste`.
+
+### Install from source (no Homebrew)
+
+```sh
+git clone https://github.com/SerenityTn/vps-img-paste
 cd vps-img-paste
-./install.sh
+./install.sh          # builds app to ~/Applications, symlinks CLI to ~/bin, login agent
+$EDITOR ~/.config/vps-img-paste.env
 ```
-
-Then edit `~/.config/vps-img-paste.env` and set your host:
-
-```sh
-VPS_HOST="user@your-vps-host"      # or an ssh_config alias
-VPS_REMOTE_HOME="/home/user"
-```
-
-The upload dir (`~/img-uploads` by default) must exist on the host:
-
-```sh
-ssh user@your-vps-host 'mkdir -p ~/img-uploads'
-```
-
-`install.sh` builds the app into `~/Applications`, symlinks the `vps-img-paste`
-CLI into `~/bin`, and registers a LaunchAgent so the app starts at login.
 
 ## Components
 

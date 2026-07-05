@@ -21,8 +21,15 @@ CONF="${VPS_IMG_PASTE_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/vps-img-paste.en
 VPS="${VPS_HOST:-user@your-vps-host}"
 REMOTE_HOME="${VPS_REMOTE_HOME:-/home/user}"
 REMOTE_DIR="${VPS_REMOTE_DIR:-img-uploads}"
-PNGPASTE="${PNGPASTE:-/opt/homebrew/bin/pngpaste}"
 SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=6)
+
+# Locate pngpaste across Homebrew prefixes / PATH (works on Apple Silicon + Intel).
+if [ -z "${PNGPASTE:-}" ]; then
+  for c in "$(command -v pngpaste 2>/dev/null || true)" /opt/homebrew/bin/pngpaste /usr/local/bin/pngpaste; do
+    if [ -n "$c" ] && [ -x "$c" ]; then PNGPASTE="$c"; break; fi
+  done
+fi
+PNGPASTE="${PNGPASTE:-/opt/homebrew/bin/pngpaste}"
 
 notify() { osascript -e "display notification \"$2\" with title \"VPS Image Paste\" subtitle \"$1\"" >/dev/null 2>&1; }
 
