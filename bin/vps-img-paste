@@ -1,34 +1,34 @@
 #!/usr/bin/env bash
-# Bridge a Mac clipboard image to a remote host (e.g. a Hermes VPS).
+# Send the image on the Mac clipboard to a remote host over SSH.
 #   1. Grab the image currently on the Mac clipboard.
 #   2. Upload it to the host over scp.
 #   3. Put the remote file path back on the Mac clipboard + show a notification.
-# Then paste that path into your remote app (Hermes auto-attaches on-disk paths).
+# Then paste that path into your remote/SSH app (many tools auto-attach on-disk paths).
 #
-# Configure the host in ~/.config/hermes-img.env (see hermes-img.env.example),
-# or via HERMES_VPS / HERMES_REMOTE_HOME env vars.
+# Configure the host in ~/.config/vps-img-paste.env (see vps-img-paste.env.example),
+# or via VPS_HOST / VPS_REMOTE_HOME env vars.
 set -euo pipefail
 
 # --- config ------------------------------------------------------------------
-CONF="${HERMES_IMG_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/hermes-img.env}"
+CONF="${VPS_IMG_PASTE_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/vps-img-paste.env}"
 # shellcheck disable=SC1090
 [ -f "$CONF" ] && . "$CONF"
 
-VPS="${HERMES_VPS:-user@your-vps-host}"
-REMOTE_HOME="${HERMES_REMOTE_HOME:-/home/user}"
-REMOTE_DIR="${HERMES_REMOTE_DIR:-hermes-uploads}"
+VPS="${VPS_HOST:-user@your-vps-host}"
+REMOTE_HOME="${VPS_REMOTE_HOME:-/home/user}"
+REMOTE_DIR="${VPS_REMOTE_DIR:-img-uploads}"
 PNGPASTE="${PNGPASTE:-/opt/homebrew/bin/pngpaste}"
 
-notify() { osascript -e "display notification \"$2\" with title \"Hermes Image\" subtitle \"$1\"" >/dev/null 2>&1; }
+notify() { osascript -e "display notification \"$2\" with title \"VPS Image Paste\" subtitle \"$1\"" >/dev/null 2>&1; }
 
 if [ "$VPS" = "user@your-vps-host" ]; then
-  echo "✗ Not configured. Copy hermes-img.env.example to $CONF and set HERMES_VPS." >&2
-  notify "Not configured" "Set HERMES_VPS in ~/.config/hermes-img.env"
+  echo "✗ Not configured. Copy vps-img-paste.env.example to $CONF and set VPS_HOST." >&2
+  notify "Not configured" "Set VPS_HOST in ~/.config/vps-img-paste.env"
   exit 2
 fi
 
 # --- grab clipboard image ----------------------------------------------------
-tmp="$(mktemp -t hermesimg).png"
+tmp="$(mktemp -t vpsimgpaste).png"
 trap 'rm -f "$tmp"' EXIT
 
 if [ ! -x "$PNGPASTE" ]; then
@@ -55,5 +55,5 @@ fi
 remote_path="$REMOTE_HOME/$REMOTE_DIR/$name"
 printf '%s' "$remote_path" | pbcopy
 echo "✓ Uploaded → $remote_path"
-echo "  Path is on your clipboard — Cmd+V it into Hermes and send."
-notify "Path copied — ⌘V in Hermes" "$name"
+echo "  Path is on your clipboard — Cmd+V it into your SSH session and send."
+notify "Path copied — ⌘V to paste" "$name"

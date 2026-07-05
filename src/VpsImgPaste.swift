@@ -1,7 +1,7 @@
 import AppKit
 
 // Menu-bar app: left-click uploads the clipboard image to the VPS by invoking
-// `~/bin/hermes-img`; right-click (or Option-click) shows a small menu.
+// `~/bin/vps-img-paste`; right-click (or Option-click) shows a small menu.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let idleSymbol = "photo.on.rectangle.angled"
@@ -13,12 +13,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.action = #selector(handleClick(_:))
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-            button.toolTip = "Hermes Image — click to upload the clipboard image to the VPS"
+            button.toolTip = "VPS Image Paste — click to upload the clipboard image to the VPS"
         }
     }
 
     private func symbol(_ name: String) -> NSImage? {
-        let img = NSImage(systemSymbolName: name, accessibilityDescription: "Hermes Image")
+        let img = NSImage(systemSymbolName: name, accessibilityDescription: "VPS Image Paste")
         img?.isTemplate = true
         return img
     }
@@ -34,12 +34,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showMenu() {
         let menu = NSMenu()
-        let up = NSMenuItem(title: "Upload Clipboard Image → Hermes",
+        let up = NSMenuItem(title: "Upload Clipboard Image → VPS",
                             action: #selector(runUpload), keyEquivalent: "")
         up.target = self
         menu.addItem(up)
         menu.addItem(NSMenuItem.separator())
-        let quit = NSMenuItem(title: "Quit Hermes Image", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Quit VPS Image Paste", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
         if let button = statusItem.button {
@@ -51,7 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func runUpload() {
         setIcon("arrow.up.circle")          // busy
         let script = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("bin/hermes-img").path
+            .appendingPathComponent("bin/vps-img-paste").path
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let task = Process()
             task.executableURL = URL(fileURLWithPath: "/bin/zsh")

@@ -1,20 +1,19 @@
-# Hermes Image
+# VPS Image Paste
 
 A tiny macOS menu-bar app that sends the image on your clipboard to a remote
-host (e.g. a [Hermes](https://github.com/) VPS) in one click, then puts the
-uploaded file's remote path on your clipboard so you can paste it straight into
-a terminal/SSH app.
+host over SSH in one click, then puts the uploaded file's remote path on your
+clipboard so you can paste it straight into a terminal / SSH session.
 
 It exists because clipboard **image** paste can't cross an SSH session — the
 remote app reads the remote (headless) clipboard, not your Mac's. Pasting
-**text** works fine, though, and Hermes auto-attaches any on-disk file path it
-sees. So this turns "clipboard image" into "clipboard path".
+**text** works fine, though, and many CLI/agent tools auto-attach any on-disk
+file path they see. So this turns "clipboard image" into "clipboard path".
 
 ## Flow
 
 1. Copy an image, or screenshot to clipboard with **⌘⌃⇧4**
 2. **Click the menu-bar icon** (📷)
-3. In your SSH/Hermes session, **⌘V** the path and send → the image attaches
+3. In your SSH session, **⌘V** the path and send → the tool attaches the image
 
 The icon shows ↑ while uploading, ✓ on success, ⚠️ on failure. Right-click (or
 ⌥-click) the icon for a menu with **Quit**.
@@ -22,36 +21,36 @@ The icon shows ↑ while uploading, ✓ on success, ⚠️ on failure. Right-cli
 ## Install
 
 ```sh
-git clone <your-repo-url> hermes-img
-cd hermes-img
+git clone <your-repo-url> vps-img-paste
+cd vps-img-paste
 ./install.sh
 ```
 
-Then edit `~/.config/hermes-img.env` and set your host:
+Then edit `~/.config/vps-img-paste.env` and set your host:
 
 ```sh
-HERMES_VPS="user@your-vps-host"      # or an ssh_config alias
-HERMES_REMOTE_HOME="/home/user"
+VPS_HOST="user@your-vps-host"      # or an ssh_config alias
+VPS_REMOTE_HOME="/home/user"
 ```
 
-The upload dir (`~/hermes-uploads` by default) must exist on the host:
+The upload dir (`~/img-uploads` by default) must exist on the host:
 
 ```sh
-ssh user@your-vps-host 'mkdir -p ~/hermes-uploads'
+ssh user@your-vps-host 'mkdir -p ~/img-uploads'
 ```
 
-`install.sh` builds the app into `~/Applications`, symlinks the `hermes-img`
+`install.sh` builds the app into `~/Applications`, symlinks the `vps-img-paste`
 CLI into `~/bin`, and registers a LaunchAgent so the app starts at login.
 
 ## Components
 
 | Path | What |
 |------|------|
-| `bin/hermes-img` | The upload script (clipboard image → scp → clipboard path). Works standalone in a terminal too. |
-| `src/HermesImage.swift` | The AppKit menu-bar app; on click it runs `~/bin/hermes-img`. |
-| `build.sh` | Compiles the app into `~/Applications/HermesImage.app`. |
+| `bin/vps-img-paste` | The upload script (clipboard image → scp → clipboard path). Works standalone in a terminal too. |
+| `src/VpsImgPaste.swift` | The AppKit menu-bar app; on click it runs `~/bin/vps-img-paste`. |
+| `build.sh` | Compiles the app into `~/Applications/VpsImgPaste.app`. |
 | `install.sh` / `uninstall.sh` | Set up / tear down the symlink, app, and LaunchAgent. |
-| `hermes-img.env.example` | Template for the local (gitignored) config. |
+| `vps-img-paste.env.example` | Template for the local (gitignored) config. |
 
 ## Requirements
 
@@ -63,5 +62,5 @@ CLI into `~/bin`, and registers a LaunchAgent so the app starts at login.
 ## Rebuild after editing
 
 ```sh
-./build.sh && launchctl kickstart -k gui/$(id -u)/com.khaireddine.hermesimage
+./build.sh && launchctl kickstart -k gui/$(id -u)/com.khaireddine.vpsimgpaste
 ```

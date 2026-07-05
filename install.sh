@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install hermes-img: symlink the script into ~/bin, build the menu-bar app,
+# Install vps-img-paste: symlink the script into ~/bin, build the menu-bar app,
 # and register it to launch at login. Idempotent.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -13,16 +13,16 @@ fi
 
 # 2. Symlink the CLI into ~/bin
 mkdir -p "$HOME/bin"
-ln -sf "$REPO/bin/hermes-img" "$HOME/bin/hermes-img"
-chmod +x "$REPO/bin/hermes-img"
-echo "✓ ~/bin/hermes-img -> $REPO/bin/hermes-img"
+ln -sf "$REPO/bin/vps-img-paste" "$HOME/bin/vps-img-paste"
+chmod +x "$REPO/bin/vps-img-paste"
+echo "✓ ~/bin/vps-img-paste -> $REPO/bin/vps-img-paste"
 
 # 3. Seed local config if missing
-CONF="${XDG_CONFIG_HOME:-$HOME/.config}/hermes-img.env"
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/vps-img-paste.env"
 if [ ! -f "$CONF" ]; then
   mkdir -p "$(dirname "$CONF")"
-  cp "$REPO/hermes-img.env.example" "$CONF"
-  echo "! Created $CONF — edit it and set HERMES_VPS before first use."
+  cp "$REPO/vps-img-paste.env.example" "$CONF"
+  echo "! Created $CONF — edit it and set VPS_HOST before first use."
 else
   echo "✓ Config present: $CONF"
 fi
@@ -31,14 +31,14 @@ fi
 ./build.sh
 
 # 5. LaunchAgent (start now + at every login)
-PL="$HOME/Library/LaunchAgents/com.khaireddine.hermesimage.plist"
-BIN="$HOME/Applications/HermesImage.app/Contents/MacOS/HermesImage"
+PL="$HOME/Library/LaunchAgents/com.khaireddine.vpsimgpaste.plist"
+BIN="$HOME/Applications/VpsImgPaste.app/Contents/MacOS/VpsImgPaste"
 cat > "$PL" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>Label</key><string>com.khaireddine.hermesimage</string>
+  <key>Label</key><string>com.khaireddine.vpsimgpaste</string>
   <key>ProgramArguments</key><array><string>$BIN</string></array>
   <key>RunAtLoad</key><true/>
   <key>ProcessType</key><string>Interactive</string>

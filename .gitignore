@@ -1,7 +1,7 @@
 # Local machine config (contains your host) — never commit
-hermes-img.env
+vps-img-paste.env
 *.env
-!hermes-img.env.example
+!vps-img-paste.env.example
 
 # Build output
 build/
