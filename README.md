@@ -11,12 +11,20 @@ file path they see. So this turns "clipboard image" into "clipboard path".
 
 ## Flow
 
-1. Copy an image, or screenshot to clipboard with **⌘⌃⇧4**
+1. Copy an image, or screenshot to clipboard with **⌘⌃⇧4** — *optional*
 2. **Click the menu-bar icon** (📷)
 3. In your SSH session, **⌘V** the path and send → the tool attaches the image
 
+If there's **no image on the clipboard**, clicking the icon instead captures a
+full-screen screenshot of the main display and uploads that (named `shot-*.png`
+vs `clip-*.png`). So the icon is always "send what I've got / send what I see".
+
 The icon shows ↑ while uploading, ✓ on success, ⚠️ on failure. Right-click (or
 ⌥-click) the icon for a menu with **Quit**.
+
+> **Screen Recording permission:** the screenshot fallback needs it. The first
+> time it fires, grant it under **System Settings → Privacy & Security → Screen
+> Recording** for *VPS Image Paste*. Until then, a screenshot is blank/windowless.
 
 ## Install
 
