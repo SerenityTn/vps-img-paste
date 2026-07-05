@@ -15,9 +15,11 @@ file path they see. So this turns "clipboard image" into "clipboard path".
 2. **Click the menu-bar icon** (📷)
 3. In your SSH session, **⌘V** the path and send → the tool attaches the image
 
-If there's **no image on the clipboard**, clicking the icon instead captures a
-full-screen screenshot of the main display and uploads that (named `shot-*.png`
-vs `clip-*.png`). So the icon is always "send what I've got / send what I see".
+If there's **no image on the clipboard**, clicking the icon instead lets you
+**drag to select a screen region** to upload (set `VPS_SHOT_MODE=full` for a
+whole-display grab). The right-click menu also has explicit **Capture Region →
+VPS…** and **Capture Full Screen → VPS** items. Screenshots are named
+`shot-*.png` vs `clip-*.png`.
 
 The app only ever acts on an icon click — it has no global hotkey and does not
 watch the clipboard, so your normal keyboard-shortcut screenshots/copies are

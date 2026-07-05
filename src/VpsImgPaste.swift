@@ -38,6 +38,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                             action: #selector(runUpload), keyEquivalent: "")
         up.target = self
         menu.addItem(up)
+
+        let region = NSMenuItem(title: "Capture Region → VPS…",
+                                action: #selector(runCapture(_:)), keyEquivalent: "")
+        region.target = self
+        region.representedObject = "region"
+        menu.addItem(region)
+
+        let full = NSMenuItem(title: "Capture Full Screen → VPS",
+                              action: #selector(runCapture(_:)), keyEquivalent: "")
+        full.target = self
+        full.representedObject = "full"
+        menu.addItem(full)
+
         menu.addItem(.separator())
 
         // Uploaded-images section (queried live from the VPS).
@@ -82,6 +95,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func runUpload() {
         setIcon("arrow.up.circle")
         runScriptAsync([]) { [weak self] ok in
+            self?.flash(ok ? "checkmark.circle" : "exclamationmark.triangle")
+        }
+    }
+
+    @objc private func runCapture(_ sender: NSMenuItem) {
+        guard let mode = sender.representedObject as? String else { return }
+        setIcon("camera")
+        runScriptAsync([mode]) { [weak self] ok in
             self?.flash(ok ? "checkmark.circle" : "exclamationmark.triangle")
         }
     }
