@@ -19,6 +19,13 @@ If there's **no image on the clipboard**, clicking the icon instead captures a
 full-screen screenshot of the main display and uploads that (named `shot-*.png`
 vs `clip-*.png`). So the icon is always "send what I've got / send what I see".
 
+The app only ever acts on an icon click — it has no global hotkey and does not
+watch the clipboard, so your normal keyboard-shortcut screenshots/copies are
+never touched. After an upload it puts the VPS path on the clipboard for the
+⌘V-into-SSH step, then **restores your previous clipboard** (image or text)
+after a grace window (`VPS_CLIP_RESTORE_SECONDS`, default 60s) so the link never
+lingers to be pasted into a Mac app by mistake.
+
 The icon shows ↑ while uploading, ✓ on success, ⚠️ on failure.
 
 **Right-click** (or ⌥-click) the icon for a menu that also lets you manage what's

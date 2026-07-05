@@ -26,6 +26,36 @@ SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=6)
 
 notify() { osascript -e "display notification \"$2\" with title \"VPS Image Paste\" subtitle \"$1\"" >/dev/null 2>&1; }
 
+# Snapshot the current clipboard (image or text) to $1, echo its type (png|txt|none).
+snapshot_clipboard() {
+  local dir="$1"
+  if osascript -e 'get the clipboard as «class PNGf»' >/dev/null 2>&1 && osascript >/dev/null 2>&1 <<OSA
+set thePng to (the clipboard as «class PNGf»)
+set f to (open for access (POSIX file "$dir/clip.png") with write permission)
+write thePng to f
+close access f
+OSA
+  then echo png; return; fi
+  if pbpaste > "$dir/clip.txt" 2>/dev/null && [ -s "$dir/clip.txt" ]; then echo txt; return; fi
+  echo none
+}
+
+# After $1 seconds, if the clipboard is still our path ($2), put the snapshot
+# ($3 type, $4 dir) back — so the icon's clipboard change is only temporary and
+# the VPS link never lingers to be pasted into a Mac app. Meant to run detached.
+restore_clipboard_after() {
+  local secs="$1" expected="$2" type="$3" dir="$4"
+  sleep "$secs"
+  if [ "$(pbpaste 2>/dev/null || true)" = "$expected" ]; then
+    case "$type" in
+      png) osascript -e "set the clipboard to (read (POSIX file \"$dir/clip.png\") as «class PNGf»)" >/dev/null 2>&1 ;;
+      txt) pbcopy < "$dir/clip.txt" ;;
+      *)   printf '' | pbcopy ;;   # clipboard was empty before the click — clear the link
+    esac
+  fi
+  rm -rf "$dir"
+}
+
 if [ "$VPS" = "user@your-vps-host" ]; then
   echo "✗ Not configured. Copy vps-img-paste.env.example to $CONF and set VPS_HOST." >&2
   notify "Not configured" "Set VPS_HOST in ~/.config/vps-img-paste.env"
@@ -71,11 +101,24 @@ case "$cmd" in
     fi
 
     remote_path="$REMOTE_HOME/$REMOTE_DIR/$name"
+
+    # Snapshot the clipboard, then put the path on it for the SSH paste. A detached
+    # job restores the snapshot after a grace window so the link never lingers.
+    grace="${VPS_CLIP_RESTORE_SECONDS:-60}"
+    snapdir="$(mktemp -d -t vpsclip)"
+    snaptype="$(snapshot_clipboard "$snapdir")"
     printf '%s' "$remote_path" | pbcopy
+    if [ "$grace" -gt 0 ] 2>/dev/null; then
+      restore_clipboard_after "$grace" "$remote_path" "$snaptype" "$snapdir" >/dev/null 2>&1 </dev/null &
+      disown 2>/dev/null || true
+    else
+      rm -rf "$snapdir"
+    fi
+
     label=$([ "$kind" = shot ] && echo "Screenshot" || echo "Image")
     echo "✓ Uploaded ($label) → $remote_path"
     echo "  Path is on your clipboard — Cmd+V it into your SSH session and send."
-    notify "$label path copied — ⌘V to paste" "$name"
+    notify "$label path copied — ⌘V to paste" "clipboard restores in ${grace}s"
     ;;
 
   list)
