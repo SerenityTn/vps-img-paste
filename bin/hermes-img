@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Bridge a Mac clipboard image to a remote host (e.g. a Hermes VPS).
+#   1. Grab the image currently on the Mac clipboard.
+#   2. Upload it to the host over scp.
+#   3. Put the remote file path back on the Mac clipboard + show a notification.
+# Then paste that path into your remote app (Hermes auto-attaches on-disk paths).
+#
+# Configure the host in ~/.config/hermes-img.env (see hermes-img.env.example),
+# or via HERMES_VPS / HERMES_REMOTE_HOME env vars.
+set -euo pipefail
+
+# --- config ------------------------------------------------------------------
+CONF="${HERMES_IMG_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/hermes-img.env}"
+# shellcheck disable=SC1090
+[ -f "$CONF" ] && . "$CONF"
+
+VPS="${HERMES_VPS:-user@your-vps-host}"
+REMOTE_HOME="${HERMES_REMOTE_HOME:-/home/user}"
+REMOTE_DIR="${HERMES_REMOTE_DIR:-hermes-uploads}"
+PNGPASTE="${PNGPASTE:-/opt/homebrew/bin/pngpaste}"
+
+notify() { osascript -e "display notification \"$2\" with title \"Hermes Image\" subtitle \"$1\"" >/dev/null 2>&1; }
+
+if [ "$VPS" = "user@your-vps-host" ]; then
+  echo "✗ Not configured. Copy hermes-img.env.example to $CONF and set HERMES_VPS." >&2
+  notify "Not configured" "Set HERMES_VPS in ~/.config/hermes-img.env"
+  exit 2
+fi
+
+# --- grab clipboard image ----------------------------------------------------
+tmp="$(mktemp -t hermesimg).png"
+trap 'rm -f "$tmp"' EXIT
+
+if [ ! -x "$PNGPASTE" ]; then
+  echo "✗ pngpaste not found at $PNGPASTE (brew install pngpaste)." >&2
+  notify "Missing pngpaste" "Run: brew install pngpaste"
+  exit 3
+fi
+
+if ! "$PNGPASTE" "$tmp" 2>/dev/null; then
+  echo "✗ No image on the clipboard." >&2
+  echo "  Copy an image, or screenshot to clipboard with Cmd+Ctrl+Shift+4, then rerun." >&2
+  notify "No image" "Copy or screenshot an image first, then retry."
+  exit 1
+fi
+
+# --- upload ------------------------------------------------------------------
+name="clip-$(date +%Y%m%d-%H%M%S).png"
+if ! scp -q "$tmp" "$VPS:$REMOTE_DIR/$name"; then
+  notify "Upload failed" "Could not reach $VPS."
+  echo "✗ scp to $VPS failed." >&2
+  exit 4
+fi
+
+remote_path="$REMOTE_HOME/$REMOTE_DIR/$name"
+printf '%s' "$remote_path" | pbcopy
+echo "✓ Uploaded → $remote_path"
+echo "  Path is on your clipboard — Cmd+V it into Hermes and send."
+notify "Path copied — ⌘V in Hermes" "$name"

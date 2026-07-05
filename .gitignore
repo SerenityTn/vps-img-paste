@@ -1,0 +1,11 @@
+# Local machine config (contains your host) — never commit
+hermes-img.env
+*.env
+!hermes-img.env.example
+
+# Build output
+build/
+*.app/
+
+# macOS
+.DS_Store
