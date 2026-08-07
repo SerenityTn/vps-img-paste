@@ -1,0 +1,47 @@
+name: Cross-platform core
+
+on:
+  push:
+    branches:
+      - feat/cross-platform-core
+  pull_request:
+    paths:
+      - "xplat/**"
+      - "rust/**"
+      - "docs/CROSS_PLATFORM_ARCHITECTURE.md"
+      - "contract/**"
+      - "tests/test_xplat.py"
+      - "tests/test-cross-platform-contract.sh"
+      - "pyproject.toml"
+      - ".github/workflows/cross-platform.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify Bash profile contract fixtures
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./tests/test-cross-platform-contract.sh
+      - name: Run Rust contract tests
+        run: cargo test --manifest-path rust/ssh-img-paste-core/Cargo.toml
+      - name: Run Python tracer tests
+        run: python -m unittest tests.test_xplat -v
+      - name: Install experimental Python tracer
+        run: python -m pip install .
+      - name: Verify installed entry point
+        run: ssh-img-paste-xplat --help
